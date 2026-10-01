@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const learningTreeSchema = new mongoose.Schema(
   {
     userId: {
@@ -38,7 +38,9 @@ const learningTreeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model(
+const LearningTree = mongoose.model(
   "LearningTree",
   learningTreeSchema
 );
+
+export default LearningTree;

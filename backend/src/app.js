@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import authRoutes from "./routes/authRoutes.js";
+import conversationRoutes from "./routes/conversatonRoutes.js";
 
 const app = express();
 
@@ -27,6 +29,9 @@ app.get("/api/health/ready", (req, res) => {
   });
 });
 
-import authRoutes from "./routes/authRoutes.js";
 app.use("/api/auth", authRoutes);
+
+app.use("/api/conversations", conversationRoutes);
+
 export default app;
+
