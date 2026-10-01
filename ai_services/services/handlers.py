@@ -1,8 +1,9 @@
 from services.query_router import Source, Action
+from services.groq_service import explain_general_query
 
-def handle_general_learn(query: str):
-    # TODO: send query straight to Groq for an explanation
-    pass
+
+def handle_general_learn(query: str) -> str:
+    return explain_general_query(query)
 
 def handle_website_learn(query: str, url: str):
     # TODO: Firecrawl -> discover topics -> user picks one -> fetch relevant content -> Groq explains it

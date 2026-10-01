@@ -1,27 +1,26 @@
-import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
 
-dotenv.config();
+import app from "./app.js";
+import connectDB from "./config/db.js";
 
-const app = express();
+dotenv.config({ path: fileURLToPath(new URL("./.env", import.meta.url)) });
 
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+function startServer() {
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 
-// Health-check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Reading Lizard backend is running",
-    service: "node-backend"
+    connectDB().catch((error) => {
+      console.error("MongoDB startup connection failed:", error.message);
+    });
   });
-});
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Node.js server running on port ${PORT}`);
-});
+  server.on("error", (error) => {
+    console.error("Server startup failed:", error.message);
+    process.exit(1);
+  });
+}
+
+startServer();

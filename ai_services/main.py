@@ -3,9 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from pydantic import BaseModel
 from dotenv import load_dotenv
-
 load_dotenv(Path(__file__).resolve().with_name(".env"))
-
 from services.url_detector import extract_url
 from services.query_router import classify_query
 from services.handlers import dispatch
