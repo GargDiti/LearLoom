@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const learningNodeSchema = new mongoose.Schema(
   {
@@ -43,7 +43,9 @@ const learningNodeSchema = new mongoose.Schema(
 
 learningNodeSchema.index({ treeId: 1, parentId: 1 });
 
-module.exports = mongoose.model(
+const LearningNode = mongoose.model(
   "LearningNode",
   learningNodeSchema
 );
+
+export default LearningNode;
