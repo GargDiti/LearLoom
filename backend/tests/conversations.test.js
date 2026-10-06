@@ -236,6 +236,11 @@ test("message flow stores both roles and sends recent history plus the saved sou
         ? "It is fast because of its event-driven runtime."
         : "Node.js is a JavaScript runtime.",
       url: sourceUrl,
+      topics: payload.query.includes(sourceUrl)
+        ? [{ level: 1, title: "Introduction" }]
+        : [],
+      awaiting_topic_selection: payload.query.includes(sourceUrl),
+      allow_whole_website: payload.query.includes(sourceUrl),
     };
   });
 
@@ -253,7 +258,12 @@ test("message flow stores both roles and sends recent history plus the saved sou
   assert.equal(storedMessages[1].role, "assistant");
   assert.equal(conversation.title, `What is Node.js? ${sourceUrl}`.slice(0, 120));
   assert.equal(conversation.sourceUrl, sourceUrl);
+  assert.equal(firstResponse.body.sourceUrl, sourceUrl);
+  assert.equal(conversation.awaitingTopicSelection, true);
+  assert.deepEqual(conversation.availableTopics, [{ level: 1, title: "Introduction" }]);
   assert.deepEqual(aiCalls[0].conversationHistory, []);
+  assert.deepEqual(firstResponse.body.topics, [{ level: 1, title: "Introduction" }]);
+  assert.equal(firstResponse.body.awaitingTopicSelection, true);
 
   const followUpResponse = mockResponse();
   await sendMessage(
@@ -269,11 +279,51 @@ test("message flow stores both roles and sends recent history plus the saved sou
   assert.equal(storedMessages[2].role, "user");
   assert.equal(storedMessages[3].role, "assistant");
   assert.equal(aiCalls[1].sourceUrl, sourceUrl);
+  assert.equal(aiCalls[1].selectedTopic, undefined);
   assert.deepEqual(aiCalls[1].conversationHistory, [
     { role: "user", content: `What is Node.js? ${sourceUrl}` },
     { role: "assistant", content: "Node.js is a JavaScript runtime." },
   ]);
   assert.match(followUpResponse.body.message.content, /event-driven/);
+});
+
+test("message endpoint forwards and returns a selected website topic", async (t) => {
+  const conversation = {
+    _id: conversationId,
+    userId,
+    title: "Node.js",
+    sourceUrl: "https://nodejs.org/learn",
+  };
+  stub(t, Conversation, "findOne", async () => conversation);
+  stub(t, Message, "create", async (message) => ({ _id: "message-id", ...message }));
+  stub(t, Message, "find", () => ({
+    sort() { return this; },
+    limit() { return this; },
+    lean: async () => [],
+  }));
+  stub(t, Conversation, "updateOne", async () => ({ modifiedCount: 1 }));
+  let aiPayload;
+  stub(t, aiService, "generateAnswer", async (payload) => {
+    aiPayload = payload;
+    return {
+      result: "Node.js is event-driven.",
+      topics: [],
+      awaiting_topic_selection: false,
+      allow_whole_website: false,
+    };
+  });
+
+  const response = mockResponse();
+  await sendMessage({
+    params: { id: conversationId },
+    user: { id: userId },
+    body: { message: "Why is it fast?", selectedTopic: "Introduction" },
+  }, response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(aiPayload.selectedTopic, "Introduction");
+  assert.deepEqual(response.body.topics, []);
+  assert.equal(response.body.awaitingTopicSelection, false);
 });
 
 test("message endpoint rejects invalid IDs, empty or oversized messages, and other users", async (t) => {
@@ -351,5 +401,6 @@ test("Node AI client posts query, history, and source URL to FastAPI", async (t)
     query: "Why is it fast?",
     conversation_history: [{ role: "user", content: "What is Node.js?" }],
     source_url: "https://nodejs.org/learn",
+    selected_topic: null,
   });
 });

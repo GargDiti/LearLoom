@@ -1,0 +1,132 @@
+.research-card-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+}
+
+.research-card-badge {
+  position: absolute;
+  top: -16px;
+  left: 24px;
+  background: #edf7ec;
+  color: #287d41;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(39, 136, 70, 0.12);
+  z-index: 2;
+}
+
+.research-card {
+  background: white;
+  border-radius: 20px;
+  padding: 32px 28px 24px;
+  box-shadow: 0 20px 45px rgba(23, 37, 27, 0.08);
+  min-height: 300px;
+}
+
+.research-card-title {
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.research-card-subtitle {
+  font-size: 13px;
+  color: #6b7a6f;
+  margin-bottom: 20px;
+}
+
+.research-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.research-card-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e2e8e3;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fafcfa;
+}
+
+.research-card-input-icon {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.research-card-input input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  width: 100%;
+  color: #17251b;
+}
+
+.research-card-input input::placeholder {
+  color: #9aa8a0;
+}
+
+.research-card-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #268f48;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.research-card-cta:hover {
+  background: #1f7a3d;
+  transform: translateY(-1px);
+}
+
+.research-card-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #eef1ee;
+}
+
+.research-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.research-chip-icon {
+  font-size: 14px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef8ec;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.research-chip-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #17251b;
+}
+
+.research-chip-subtitle {
+  font-size: 11.5px;
+  color: #8b988e;
+}

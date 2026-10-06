@@ -18,6 +18,18 @@ const conversationSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    availableTopics: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+    awaitingTopicSelection: {
+      type: Boolean,
+      default: false,
+    },
+    allowWholeWebsite: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

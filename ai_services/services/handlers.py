@@ -4,7 +4,7 @@ from services.firecrawl_service import scrape_page
 from services.groq_service import answer_from_context, explain_general_query
 from services.query_router import Action, Source
 from services.text_chunker import chunk_markdown
-from services.topic_extractor import extract_topics
+from services.topic_extractor import extract_section, extract_topics
 from services.vector_store import index_chunks, search_chunks
 
 
@@ -44,6 +44,7 @@ def handle_website_learn(
     query: str,
     url: str,
     conversation_history: list[dict] | None = None,
+    selected_topic: str | None = None,
 ) -> str:
     result = scrape_page(url)
     markdown = result.get("markdown", "") if isinstance(result, dict) else ""
@@ -51,11 +52,20 @@ def handle_website_learn(
         raise ValueError("Firecrawl returned no Markdown content.")
 
     topics = extract_topics(markdown)
+    selectable_topics = [
+        topic["title"]
+        for topic in topics
+        if extract_section(markdown, topic["title"]).strip()
+    ]
+    if selected_topic and selected_topic not in selectable_topics:
+        raise ValueError("Selected topic was not found in the website content.")
+
     topic_context = "\n".join(topic["title"] for topic in topics)
     question = query.replace(url, " ").strip()
     if not question:
         question = "Teach me the key ideas from this website."
-    retrieval_query = "\n".join(part for part in (question, topic_context) if part)
+    retrieval_context = selected_topic or topic_context
+    retrieval_query = "\n".join(part for part in (question, retrieval_context) if part)
     return _answer_from_source(
         question,
         markdown,
@@ -63,6 +73,25 @@ def handle_website_learn(
         retrieval_query,
         conversation_history,
     )
+
+
+def prepare_website_learning(url: str) -> dict:
+    result = scrape_page(url)
+    markdown = result.get("markdown", "") if isinstance(result, dict) else ""
+    if not isinstance(markdown, str) or not markdown.strip():
+        raise ValueError("Firecrawl returned no Markdown content.")
+
+    topics = [
+        topic
+        for topic in extract_topics(markdown)
+        if extract_section(markdown, topic["title"]).strip()
+    ]
+    chunks = chunk_markdown(markdown)
+    if not chunks:
+        raise ValueError("No text chunks could be created from the website.")
+
+    indexed_count = index_chunks(url, chunks)
+    return {"topics": topics, "indexed_chunks": indexed_count}
 
 
 def handle_source_text_learn(
@@ -97,13 +126,19 @@ def dispatch(
     url: str | None,
     source_text: str | None = None,
     conversation_history: list[dict] | None = None,
+    selected_topic: str | None = None,
 ):
     if source == Source.GENERAL and action == Action.LEARN:
         return handle_general_learn(query, conversation_history)
     if source == Source.WEBSITE and action == Action.LEARN:
         if not url:
             raise ValueError("A URL is required for website learning.")
-        return handle_website_learn(query, url, conversation_history)
+        return handle_website_learn(
+            query,
+            url,
+            conversation_history,
+            selected_topic,
+        )
     if source == Source.SOURCE_TEXT and action == Action.LEARN:
         return handle_source_text_learn(query, source_text, conversation_history)
     if source == Source.GENERAL and action == Action.QUIZ:

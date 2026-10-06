@@ -165,6 +165,10 @@ const sendMessage = async (req, res) => {
         message: `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
       });
     }
+    const selectedTopic = req.body?.selectedTopic;
+    if (selectedTopic !== undefined && selectedTopic !== null && typeof selectedTopic !== "string") {
+      return res.status(400).json({ success: false, message: "Selected topic must be text" });
+    }
 
     const found = await findOwnedConversation(id, req.user.id);
     if (found.error === "invalid") {
@@ -203,6 +207,7 @@ const sendMessage = async (req, res) => {
         query: content.trim(),
         conversationHistory,
         sourceUrl: conversation.sourceUrl,
+        selectedTopic,
       });
       console.log("[AI] Response received");
     } catch (error) {
@@ -228,6 +233,11 @@ const sendMessage = async (req, res) => {
     if (aiResult.url && !conversation.sourceUrl) {
       updates.sourceUrl = aiResult.url;
     }
+    updates.awaitingTopicSelection = aiResult.awaiting_topic_selection === true;
+    updates.allowWholeWebsite = aiResult.allow_whole_website === true;
+    if (Array.isArray(aiResult.topics)) {
+      updates.availableTopics = aiResult.topics;
+    }
     if (Object.keys(updates).length) {
       await Conversation.updateOne({ _id: conversation._id }, { $set: updates });
     } else {
@@ -238,6 +248,10 @@ const sendMessage = async (req, res) => {
       success: true,
       conversationId: conversation._id,
       message: assistantMessage,
+      sourceUrl: aiResult.url || conversation.sourceUrl || null,
+      topics: aiResult.topics || [],
+      awaitingTopicSelection: aiResult.awaiting_topic_selection === true,
+      allowWholeWebsite: aiResult.allow_whole_website === true,
     });
   } catch (error) {
     console.error("[MESSAGE] Could not process message:", error.message);
