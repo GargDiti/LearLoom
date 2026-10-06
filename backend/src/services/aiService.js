@@ -13,7 +13,7 @@ function getAIServiceUrl() {
   return serviceUrl.toString();
 }
 
-async function generateAnswer({ query, conversationHistory, sourceUrl }) {
+async function generateAnswer({ query, conversationHistory, sourceUrl, selectedTopic }) {
   const serviceUrl = getAIServiceUrl();
   const response = await fetch(serviceUrl, {
     method: "POST",
@@ -22,6 +22,7 @@ async function generateAnswer({ query, conversationHistory, sourceUrl }) {
       query,
       conversation_history: conversationHistory,
       source_url: sourceUrl || null,
+      selected_topic: selectedTopic ?? null,
     }),
     signal: AbortSignal.timeout(90000),
   });

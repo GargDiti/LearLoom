@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from main import QueryRequest, analyze_query
 from services.groq_service import answer_from_context, explain_general_query
+from services.handlers import handle_website_learn
 from services.query_router import Action, RequestType, Source
 
 
@@ -82,7 +83,60 @@ class ConversationHistoryTests(unittest.TestCase):
             source_url,
             source_text=None,
             conversation_history=self.history,
+            selected_topic=None,
         )
+
+    def test_initial_website_request_returns_topics_for_selection(self):
+        source_url = "https://docs.example.org/guide"
+        request = QueryRequest(query=f"Learn from {source_url}")
+        classification = {
+            "source": Source.WEBSITE,
+            "action": Action.LEARN,
+            "request_type": RequestType.WEBSITE_LEARNING,
+        }
+        topics = [{"level": 1, "title": "Getting Started"}]
+        with (
+            patch("main.classify_query", return_value=classification),
+            patch(
+                "main.prepare_website_learning",
+                return_value={"topics": topics, "indexed_chunks": 2},
+            ) as prepare,
+            patch("main.dispatch") as dispatch,
+        ):
+            result = analyze_query(request)
+
+        prepare.assert_called_once_with(source_url)
+        dispatch.assert_not_called()
+        self.assertEqual(result["topics"], topics)
+        self.assertTrue(result["awaiting_topic_selection"])
+        self.assertTrue(result["allow_whole_website"])
+
+    def test_selected_topic_is_used_for_website_retrieval(self):
+        url = "https://docs.example.org/guide"
+        retrieved = [{"text": "The event loop schedules asynchronous work."}]
+        with (
+            patch("services.handlers.scrape_page", return_value={"markdown": "# Introduction\nDetails"}),
+            patch("services.handlers.extract_topics", return_value=[{"level": 1, "title": "Introduction"}]),
+            patch("services.handlers.extract_section", return_value="Details"),
+            patch("services.handlers.chunk_markdown", return_value=[{"chunk_id": 0, "text": "Details"}]),
+            patch("services.handlers.index_chunks", return_value=1),
+            patch("services.handlers.search_chunks", return_value=retrieved) as search,
+            patch("services.handlers.answer_from_context", return_value="Answer") as answer,
+        ):
+            result = handle_website_learn(
+                "Why is it fast?",
+                url,
+                self.history,
+                "Introduction",
+            )
+
+        self.assertEqual(result, "Answer")
+        search.assert_called_once_with(
+            "Why is it fast?\nIntroduction",
+            url,
+            top_k=4,
+        )
+        answer.assert_called_once_with("Why is it fast?", retrieved, self.history)
 
 
 if __name__ == "__main__":
