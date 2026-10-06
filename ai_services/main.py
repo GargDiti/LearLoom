@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv

@@ -1,0 +1,11 @@
+chromadb==1.5.9
+fastapi==0.141.1
+firecrawl-py==4.44.0
+groq==1.7.0
+joblib==1.6.0
+numpy==2.5.3
+pydantic==2.13.5
+python-dotenv==1.2.3
+scikit-learn==1.9.1
+upstash-redis==1.8.0
+uvicorn[standard]==0.54.0
