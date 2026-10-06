@@ -22,6 +22,7 @@ function authMiddleware(req, res, next) {
       id: decoded.userId,
     };
 
+    console.log(`[AUTH] User authenticated: ${req.user.id}`);
     next();
   } catch (error) {
     return res.status(401).json({

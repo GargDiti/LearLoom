@@ -1,57 +1,50 @@
-import json
+import re
 from enum import Enum
-from groq import Groq
-
-client = Groq()
 
 class Source(str, Enum):
     GENERAL = "general"
     WEBSITE = "website"
+    SOURCE_TEXT = "source_text"
 
 class Action(str, Enum):
     LEARN = "learn"
     QUIZ = "quiz"
 
-CLASSIFY_PROMPT = """Classify the user's learning request along two independent dimensions.
+class RequestType(str, Enum):
+    GENERAL_LEARNING = "GENERAL_LEARNING"
+    WEBSITE_LEARNING = "WEBSITE_LEARNING"
+    SOURCE_TEXT_LEARNING = "SOURCE_TEXT_LEARNING"
+    QUIZ = "QUIZ"
 
-SOURCE — where the learning material comes from:
-- "general": no specific webpage involved, or user just names a topic
-- "website": user references a specific webpage/URL to learn from or quiz on
+SOURCE_TEXT_MIN_CHARS = 1200
+QUIZ_PATTERN = re.compile(r"\b(quiz|test me|practice questions?)\b", re.IGNORECASE)
 
-ACTION — what the user wants done:
-- "learn": user wants an explanation/teaching of a topic
-- "quiz": user wants to be tested, quizzed, or given practice questions
+def classify_query(
+    query: str,
+    has_url: bool,
+    source_text: str | None = None,
+) -> dict:
+    """Choose the learning path without making an LLM call."""
+    action = Action.QUIZ if QUIZ_PATTERN.search(query) else Action.LEARN
 
-Respond with ONLY valid JSON: {{"source": "<general|website>", "action": "<learn|quiz>"}}
-
-User query: {query}
-Has URL present: {has_url}
-"""
-
-def classify_query(query: str, has_url: bool) -> dict:
-    response = client.chat.completions.create(
-        model="qwen/qwen3.8-27b",
-        messages=[{"role": "user", "content": CLASSIFY_PROMPT.format(query=query, has_url=has_url)}],
-        temperature=0,
-        response_format={"type": "json_object"},
-    )
-    result = json.loads(response.choices[0].message.content)
-
-    source_str = result.get("source", "general")
-    action_str = result.get("action", "learn")
-
-    # has_url is a hard signal from code — never let the LLM contradict it
     if has_url:
-        source_str = "website"
-
-    try:
-        source = Source(source_str)
-    except ValueError:
+        source = Source.WEBSITE
+    elif (source_text and source_text.strip()) or len(query.strip()) >= SOURCE_TEXT_MIN_CHARS:
+        source = Source.SOURCE_TEXT
+    else:
         source = Source.GENERAL
 
-    try:
-        action = Action(action_str)
-    except ValueError:
-        action = Action.LEARN
+    if action == Action.QUIZ:
+        request_type = RequestType.QUIZ
+    else:
+        request_type = {
+            Source.GENERAL: RequestType.GENERAL_LEARNING,
+            Source.WEBSITE: RequestType.WEBSITE_LEARNING,
+            Source.SOURCE_TEXT: RequestType.SOURCE_TEXT_LEARNING,
+        }[source]
 
-    return {"source": source, "action": action}
+    return {
+        "source": source,
+        "action": action,
+        "request_type": request_type,
+    }

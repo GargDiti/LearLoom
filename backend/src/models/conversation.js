@@ -13,6 +13,11 @@ const conversationSchema = new mongoose.Schema(
       default: "New Conversation",
       trim: true,
     },
+    sourceUrl: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   {
     timestamps: true,
