@@ -14,7 +14,7 @@ import authMiddleware from "../src/middleware/authmiddleware.js";
 import Conversation from "../src/models/conversation.js";
 import Message from "../src/models/message.js";
 import User from "../src/models/User.js";
-import aiService from "../src/services/aiService.js";
+import aiService, { generateAnswer } from "../src/services/aiService.js";
 
 const userId = "64b000000000000000000001";
 const otherUserId = "64b000000000000000000002";
@@ -42,6 +42,31 @@ function stub(t, target, key, replacement) {
     target[key] = original;
   });
 }
+
+test("production AI requests require a non-local deployed service URL", async (t) => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousAIServiceUrl = process.env.AI_SERVICE_URL;
+  process.env.NODE_ENV = "production";
+  delete process.env.AI_SERVICE_URL;
+  t.after(() => {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousAIServiceUrl === undefined) delete process.env.AI_SERVICE_URL;
+    else process.env.AI_SERVICE_URL = previousAIServiceUrl;
+  });
+
+  const request = { query: "test", conversationHistory: [] };
+  await assert.rejects(
+    generateAnswer(request),
+    /AI_SERVICE_URL must be configured with the deployed AI service URL/,
+  );
+
+  process.env.AI_SERVICE_URL = "http://127.0.0.1:8000";
+  await assert.rejects(
+    generateAnswer(request),
+    /AI_SERVICE_URL must not point to localhost in production/,
+  );
+});
 
 test("register hashes passwords and login returns a JWT accepted by auth middleware", async (t) => {
   const priorSecret = process.env.JWT_SECRET;

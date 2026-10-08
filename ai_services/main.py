@@ -9,6 +9,10 @@ from services.handlers import dispatch, prepare_website_learning
 
 app = FastAPI()
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 class QueryRequest(BaseModel):
     query: str
     source_text: str | None = None

@@ -1,9 +1,18 @@
-const DEFAULT_AI_SERVICE_URL = "http://127.0.0.1:8000/analyze-query";
-
 function getAIServiceUrl() {
-  const serviceUrl = new URL(
-    process.env.AI_SERVICE_URL || DEFAULT_AI_SERVICE_URL,
-  );
+  const configuredUrl = process.env.AI_SERVICE_URL;
+  const isProduction = process.env.NODE_ENV === "production";
+  if (!configuredUrl) {
+    throw new Error("AI_SERVICE_URL must be configured with the deployed AI service URL");
+  }
+
+  const serviceUrl = new URL(configuredUrl);
+  if (
+    isProduction
+    && ["localhost", "127.0.0.1", "::1", "[::1]"].includes(serviceUrl.hostname)
+  ) {
+    throw new Error("AI_SERVICE_URL must not point to localhost in production");
+  }
+
   const path = serviceUrl.pathname.replace(/\/+$/, "");
 
   if (!path.endsWith("/analyze-query")) {
