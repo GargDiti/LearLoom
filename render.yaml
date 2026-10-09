@@ -1,0 +1,13 @@
+services:
+  - type: worker
+    name: learnloom-keep-alive
+    runtime: node
+    rootDir: backend
+    plan: 0.5c-512mb
+    buildCommand: npm ci
+    startCommand: npm run keep-alive
+    envVars:
+      - key: AI_SERVICE_HEALTH_URL
+        sync: false
+      - key: BACKEND_HEALTH_URL
+        sync: false
